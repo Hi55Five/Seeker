@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favoritos — Seeker</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="index.html">SEEK<span>ER</span></a>
+  <div class="navbar-actions">
+    <a class="nav-link" href="index.html"><i class="ti ti-layout-grid"></i> Biblioteca</a>
+    <a class="nav-link active" href="favorites.html"><i class="ti ti-heart"></i> Favoritos</a>
+    <a class="nav-link" href="compare.html"><i class="ti ti-scale"></i> Comparar</a>
+    <div id="nav-auth"></div>
+  </div>
+</nav>
+
+<main>
+  <div class="container page-content">
+    <div style="margin-bottom:1.5rem;">
+      <h1 style="font-size:24px; margin-bottom:4px;"><i class="ti ti-heart" style="color:var(--accent-main)"></i> Meus Favoritos</h1>
+      <p style="color:var(--text-secondary); font-size:14px;">Jogos que você marcou para acompanhar.</p>
+    </div>
+
+    <div id="favs-content">
+      <div class="state-loading">
+        <div class="state-loading-spinner"></div>
+        <p>Carregando favoritos...</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-game-title">—</span>
+      <button class="modal-close" onclick="closeDetailModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="firebase.js"></script>
+<script>
+let allGames = [];
+let favorites = new Set();
+let currentUser = null;
+let compareList = JSON.parse(localStorage.getItem('seeker_compare') || '[]');
+
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  renderNav();
+  if (user) {
+    await loadAllGames();
+    await loadFavorites();
+  } else {
+    document.getElementById('favs-content').innerHTML = `
+      <div class="favs-empty">
+        <i class="ti ti-login"></i>
+        <h3>Faça login para ver seus favoritos</h3>
+        <p style="margin-bottom:1.5rem">Seus favoritos ficam salvos na nuvem e sincronizados em qualquer dispositivo.</p>
+        <button class="btn btn-primary" onclick="signIn()"><i class="ti ti-brand-google"></i> Entrar com Google</button>
+      </div>`;
+  }
+});
+
+function renderNav() {
+  const el = document.getElementById('nav-auth');
+  if (currentUser) {
+    const initials = (currentUser.displayName || currentUser.email || 'U').slice(0,2).toUpperCase();
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+      <a href="admin.html" class="btn btn-ghost btn-sm"><i class="ti ti-settings"></i></a>
+      <div class="user-avatar" onclick="signOut()">${initials}</div>
+    </div>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="signIn()"><i class="ti ti-login"></i> Entrar</button>`;
+  }
+}
+
+function signIn() {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+}
+function signOut() { auth.signOut(); }
+
+async function loadAllGames() {
+  const snap = await db.collection('games').get();
+  allGames = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadFavorites() {
+  const snap = await db.collection('favorites').doc(currentUser.uid).collection('items').orderBy('addedAt','desc').get();
+  favorites = new Set(snap.docs.map(d => d.id));
+  renderFavorites(snap.docs.map(d => d.id));
+}
+
+function renderFavorites(favIds) {
+  const container = document.getElementById('favs-content');
+  if (!favIds.length) {
+    container.innerHTML = `
+      <div class="favs-empty">
+        <i class="ti ti-heart-off"></i>
+        <h3>Nenhum favorito ainda</h3>
+        <p style="margin-bottom:1.5rem">Marque jogos com ♥ na biblioteca para vê-los aqui.</p>
+        <a href="index.html" class="btn btn-primary"><i class="ti ti-layout-grid"></i> Ir para a biblioteca</a>
+      </div>`;
+    return;
+  }
+
+  const favGames = favIds.map(id => allGames.find(g => g.id === id)).filter(Boolean);
+  container.innerHTML = `
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:1rem;">${favGames.length} jogo${favGames.length!==1?'s':''} favorito${favGames.length!==1?'s':''}</p>
+    <div class="games-grid">${favGames.map(g => gameCardHTML(g)).join('')}</div>`;
+}
+
+function getMinPrice(game) {
+  const prices = Object.values(game.platforms || {}).map(p => p.price).filter(p => p > 0);
+  return prices.length ? Math.min(...prices) : 0;
+}
+
+function gameCardHTML(g) {
+  const minPrice = getMinPrice(g);
+  const hasSale = Object.values(g.platforms||{}).some(p => p.onSale);
+  const badge = g.isFree ? '<span class="game-badge badge-free">Grátis</span>'
+    : hasSale ? '<span class="game-badge badge-sale">Promoção</span>'
+    : g.releaseYear >= 2023 ? '<span class="game-badge badge-new">Novo</span>' : '';
+  const metaClass = g.metacritic >= 85 ? 'meta-green' : g.metacritic >= 70 ? 'meta-yellow' : 'meta-red';
+  const platformChips = Object.keys(g.platforms||{}).map(k => {
+    const info = PLATFORMS[k]; if(!info) return '';
+    return `<span class="plat-chip chip-${k.replace('_','')}">${info.label}</span>`;
+  }).join('');
+
+  return `
+  <div class="card game-card" onclick="openDetail('${g.id}')">
+    <div class="game-card-thumb">
+      <span style="font-size:48px">${g.icon||'🎮'}</span>
+      ${badge}
+      <button class="fav-btn active" onclick="removeFav(event,'${g.id}')" title="Remover favorito">
+        <i class="ti ti-heart-filled"></i>
+      </button>
+    </div>
+    <div class="game-card-body">
+      <div class="game-card-title">${g.title}</div>
+      <div class="game-card-genre">${g.genre}${g.releaseYear?' · '+g.releaseYear:''}</div>
+      <div class="game-card-meta">
+        <div>${g.isFree
+          ? '<span class="game-price-free">Free to Play</span>'
+          : `<span class="game-price">R$ ${minPrice.toFixed(2).replace('.',',')}</span>`}</div>
+        ${g.metacritic ? `<span class="game-meta-score ${metaClass}">${g.metacritic}</span>` : ''}
+      </div>
+      <div class="platform-chips">${platformChips}</div>
+    </div>
+  </div>`;
+}
+
+async function removeFav(e, gameId) {
+  e.stopPropagation();
+  await db.collection('favorites').doc(currentUser.uid).collection('items').doc(gameId).delete();
+  favorites.delete(gameId);
+  toast('Removido dos favoritos', 'info');
+  await loadFavorites();
+}
+
+function openDetail(gameId) {
+  const g = allGames.find(x => x.id === gameId);
+  if (!g) return;
+  document.getElementById('modal-game-title').textContent = g.title;
+  const platforms = Object.entries(g.platforms || {});
+  const prices = platforms.filter(([,p]) => p.price > 0).map(([,p]) => p.price);
+  const minPrice = prices.length ? Math.min(...prices) : 0;
+  const rows = platforms.map(([key, p]) => {
+    const info = PLATFORMS[key] || { label: key, color: '#888' };
+    const isBest = p.price === minPrice && p.price > 0;
+    return `<tr>
+      <td><div class="plat-name"><div class="plat-dot" style="background:${info.color}"></div>${info.label}</div></td>
+      <td>${p.price === 0 ? '<span class="game-price-free">Grátis</span>'
+        : p.onSale && p.originalPrice
+          ? `<s style="color:var(--text-muted);font-size:12px">R$ ${p.originalPrice.toFixed(2).replace('.',',')}</s> <span class="${isBest?'price-best':''}">R$ ${p.price.toFixed(2).replace('.',',')}</span>`
+          : `<span class="${isBest?'price-best':''}">R$ ${p.price.toFixed(2).replace('.',',')}</span>`}
+        ${isBest && p.price > 0 ? '<span class="price-tag" style="margin-left:6px">Melhor preço</span>' : ''}</td>
+      <td><a href="${p.url}" target="_blank" class="compare-btn" onclick="event.stopPropagation()">Comprar <i class="ti ti-external-link"></i></a></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('modal-body').innerHTML = `
+    <div class="game-detail-head">
+      <div class="game-detail-icon">${g.icon||'🎮'}</div>
+      <div class="game-detail-info">
+        <h2>${g.title}</h2>
+        <p>${g.description||''}</p>
+        <div class="game-detail-tags">
+          <span class="detail-tag">${g.genre}</span>
+          ${g.releaseYear?`<span class="detail-tag">${g.releaseYear}</span>`:''}
+          ${g.metacritic?`<span class="detail-tag">Metacritic ${g.metacritic}</span>`:''}
+        </div>
+      </div>
+    </div>
+    <hr class="divider">
+    <h3 style="font-size:15px;margin-bottom:.75rem">Comparar preços</h3>
+    <div style="overflow-x:auto"><table class="price-table">
+      <thead><tr><th>Plataforma</th><th>Preço</th><th>Loja</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetailModal() { document.getElementById('detail-modal').classList.remove('open'); }
+function closeModal(e) { if (e.target === document.getElementById('detail-modal')) closeDetailModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetailModal(); });
+
+let toastTimer;
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  const icons = { success:'ti-check', error:'ti-alert-circle', info:'ti-info-circle' };
+  el.className = `toast toast-${type} show`;
+  el.innerHTML = `<i class="ti ${icons[type]}" style="font-size:16px"></i> ${msg}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

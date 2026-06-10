@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Seeker</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    .platform-editor { background: var(--bg-elevated); border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px; border: 1px solid var(--border-subtle); }
+    .platform-editor-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .plat-row { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 8px; align-items: end; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+    .form-row { display: grid; gap: 12px; }
+    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+    .stat-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; }
+    .stat-value { font-size: 28px; font-weight: 700; font-family: var(--font-display); }
+    .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+    .admin-actions { display: flex; gap: 8px; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent-main); cursor: pointer; }
+    .delete-btn { color: #ff7070; background: none; border: 1px solid rgba(255,112,112,0.3); border-radius: var(--radius-sm); padding: 5px 10px; cursor: pointer; font-size: 13px; transition: var(--transition); }
+    .delete-btn:hover { background: rgba(255,112,112,0.1); border-color: #ff7070; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="index.html">SEEK<span>ER</span></a>
+  <div class="navbar-actions">
+    <a class="nav-link" href="index.html"><i class="ti ti-layout-grid"></i> Biblioteca</a>
+    <a class="nav-link active" href="admin.html"><i class="ti ti-settings"></i> Admin</a>
+    <div id="nav-auth"></div>
+  </div>
+</nav>
+
+<!-- Login Gate -->
+<div id="login-gate" style="display:none; min-height:calc(100vh - 60px); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:1rem; text-align:center; padding:2rem;">
+  <i class="ti ti-lock" style="font-size:48px; color:var(--accent-main); opacity:.5"></i>
+  <h2>Área restrita</h2>
+  <p style="color:var(--text-secondary)">Faça login com a conta de administrador para continuar.</p>
+  <button class="btn btn-primary" onclick="signIn()"><i class="ti ti-brand-google"></i> Entrar com Google</button>
+</div>
+
+<!-- Admin Panel -->
+<div id="admin-panel" style="display:none;">
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; padding:0 4px;">Gerenciar</div>
+      <div class="admin-menu-item active" onclick="setSection('games',this)"><i class="ti ti-device-gamepad-2"></i> Jogos</div>
+      <div class="admin-menu-item" onclick="setSection('add',this)"><i class="ti ti-plus"></i> Adicionar jogo</div>
+      <hr class="divider" style="margin:8px 0">
+      <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; padding:0 4px;">Conta</div>
+      <div class="admin-menu-item" onclick="signOut()"><i class="ti ti-logout"></i> Sair</div>
+    </aside>
+
+    <!-- Content -->
+    <div class="admin-content">
+      <div id="section-games">
+        <h2 style="font-size:20px; margin-bottom:1.5rem;">Jogos cadastrados</h2>
+        <div class="stats-bar" id="stats-bar">
+          <div class="stat-card"><div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-deals" style="color:#6ee882">—</div><div class="stat-label">Em promoção</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-free" style="color:#ffc06e">—</div><div class="stat-label">Gratuitos</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-plats">6</div><div class="stat-label">Plataformas</div></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:1rem; flex-wrap:wrap; align-items:center;">
+          <div style="position:relative; flex:1; min-width:200px; max-width:320px;">
+            <i class="ti ti-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none;"></i>
+            <input type="text" id="admin-search" placeholder="Buscar..." style="padding-left:38px;" oninput="filterAdminTable()">
+          </div>
+          <button class="btn btn-primary" onclick="setSection('add', document.querySelector('.admin-menu-item:nth-child(2)'))">
+            <i class="ti ti-plus"></i> Novo jogo
+          </button>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="admin-table">
+            <thead><tr>
+              <th>Jogo</th>
+              <th>Gênero</th>
+              <th>Ano</th>
+              <th>Metacritic</th>
+              <th>Plataformas</th>
+              <th>Menor preço</th>
+              <th>Ações</th>
+            </tr></thead>
+            <tbody id="admin-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                <div class="state-loading-spinner" style="margin:0 auto .5rem"></div>Carregando...
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="section-add" style="display:none;">
+        <h2 style="font-size:20px; margin-bottom:1.5rem;" id="form-title">Adicionar jogo</h2>
+        <form id="game-form" onsubmit="submitGame(event)">
+          <input type="hidden" id="edit-id">
+
+          <div class="form-row" style="grid-template-columns:1fr 1fr;">
+            <div class="form-group">
+              <label class="form-label">Título *</label>
+              <input type="text" id="f-title" placeholder="ex: Elden Ring" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ícone (emoji)</label>
+              <input type="text" id="f-icon" placeholder="🎮" maxlength="4">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Descrição</label>
+            <textarea id="f-desc" rows="2" placeholder="Breve descrição do jogo..."></textarea>
+          </div>
+
+          <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
+            <div class="form-group">
+              <label class="form-label">Gênero *</label>
+              <select id="f-genre" required>
+                <option value="">Selecionar...</option>
+                ${GENRES.map(g => `<option value="${g}">${g}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ano de lançamento</label>
+              <input type="number" id="f-year" placeholder="2024" min="1970" max="2030">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Metacritic (0-100)</label>
+              <input type="number" id="f-meta" placeholder="85" min="0" max="100">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="f-free" style="vertical-align:-2px;margin-right:6px"> Free to Play
+            </label>
+          </div>
+
+          <hr class="divider">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h3 style="font-size:15px;">Preços por plataforma</h3>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addPlatformRow()"><i class="ti ti-plus"></i> Adicionar plataforma</button>
+          </div>
+
+          <div id="platform-rows"></div>
+
+          <div style="display:flex; gap:10px; margin-top:1.5rem;">
+            <button type="submit" class="btn btn-primary"><i class="ti ti-check"></i> Salvar jogo</button>
+            <button type="button" class="btn btn-ghost" onclick="resetForm()"><i class="ti ti-x"></i> Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal" onclick="closeConfirm(event)">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">Confirmar exclusão</span>
+      <button class="modal-close" onclick="document.getElementById('confirm-modal').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+    <p style="color:var(--text-secondary);margin-bottom:1.5rem;">Tem certeza que deseja excluir este jogo? Esta ação não pode ser desfeita.</p>
+    <div style="display:flex;gap:10px;">
+      <button class="delete-btn" onclick="confirmDelete()" style="flex:1;padding:10px;">Excluir</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('confirm-modal').classList.remove('open')" style="flex:1;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="firebase.js"></script>
+<script>
+let allGames = [];
+let currentUser = null;
+let deleteTargetId = null;
+// ── ADMIN EMAILS — adicione os e-mails dos admins aqui ──
+const ADMIN_EMAILS = ['seu-email@gmail.com'];
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  document.getElementById('login-gate').style.display = isAdmin ? 'none' : 'flex';
+  document.getElementById('admin-panel').style.display = isAdmin ? 'flex' : 'none';
+  if (isAdmin) loadGames();
+  const el = document.getElementById('nav-auth');
+  if (user) {
+    const initials = (user.displayName||user.email||'U').slice(0,2).toUpperCase();
+    el.innerHTML = `<div class="user-avatar">${initials}</div>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="signIn()">Entrar</button>`;
+  }
+  // Show login gate for non-admins who are logged in
+  if (user && !isAdmin) {
+    document.getElementById('login-gate').innerHTML = `
+      <i class="ti ti-ban" style="font-size:48px;color:#ff7070;opacity:.5"></i>
+      <h2>Acesso negado</h2>
+      <p style="color:var(--text-secondary)">Sua conta não tem permissão de admin.</p>
+      <button class="btn btn-ghost" onclick="signOut()">Sair</button>`;
+    document.getElementById('login-gate').style.display = 'flex';
+  }
+});
+
+function signIn() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+function signOut() { auth.signOut(); }
+
+async function loadGames() {
+  const snap = await db.collection('games').orderBy('title').get();
+  allGames = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  updateStats();
+  renderTable(allGames);
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = allGames.length;
+  document.getElementById('stat-deals').textContent = allGames.filter(g => Object.values(g.platforms||{}).some(p=>p.onSale)).length;
+  document.getElementById('stat-free').textContent = allGames.filter(g => g.isFree).length;
+}
+
+function filterAdminTable() {
+  const q = document.getElementById('admin-search').value.toLowerCase();
+  renderTable(allGames.filter(g => g.title.toLowerCase().includes(q)));
+}
+
+function renderTable(games) {
+  const tbody = document.getElementById('admin-tbody');
+  if (!games.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">Nenhum jogo encontrado</td></tr>'; return; }
+  tbody.innerHTML = games.map(g => {
+    const prices = Object.values(g.platforms||{}).map(p=>p.price).filter(p=>p>0);
+    const min = prices.length ? Math.min(...prices) : null;
+    const platCount = Object.keys(g.platforms||{}).length;
+    return `<tr>
+      <td style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px">${g.icon||'🎮'}</span>
+        <span style="font-weight:500">${g.title}</span>
+      </td>
+      <td>${g.genre||'—'}</td>
+      <td>${g.releaseYear||'—'}</td>
+      <td>${g.metacritic||'—'}</td>
+      <td>${platCount} plat.</td>
+      <td>${g.isFree ? '<span style="color:#6ee882">Grátis</span>' : min ? `R$ ${min.toFixed(2).replace('.',',')}` : '—'}</td>
+      <td>
+        <div class="admin-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editGame('${g.id}')"><i class="ti ti-edit"></i></button>
+          <button class="delete-btn" onclick="askDelete('${g.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Sections ──
+function setSection(name, el) {
+  document.querySelectorAll('.admin-menu-item').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('section-games').style.display = name === 'games' ? 'block' : 'none';
+  document.getElementById('section-add').style.display = name === 'add' ? 'block' : 'none';
+}
+
+// ── Platform rows ──
+let platformRowCount = 0;
+function addPlatformRow(key='', price='', url='', onSale=false, originalPrice='') {
+  const id = platformRowCount++;
+  const options = Object.entries(PLATFORMS).map(([k,v]) =>
+    `<option value="${k}" ${k===key?'selected':''}>${v.label}</option>`).join('');
+  const div = document.createElement('div');
+  div.className = 'platform-editor'; div.id = `prow-${id}`;
+  div.innerHTML = `
+    <div class="platform-editor-header">
+      <select id="pkey-${id}" style="width:auto;min-width:140px;">${options}</select>
+      <button type="button" onclick="document.getElementById('prow-${id}').remove()" class="btn btn-ghost btn-sm btn-icon"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="plat-row">
+      <div><label class="form-label">Preço (R$)</label><input type="number" id="pprice-${id}" value="${price}" placeholder="0.00" min="0" step="0.01"></div>
+      <div><label class="form-label"><input type="checkbox" id="psale-${id}" ${onSale?'checked':''} style="margin-right:6px;vertical-align:-2px">Em promoção</label>
+        <input type="number" id="poriginal-${id}" value="${originalPrice}" placeholder="Preço original" min="0" step="0.01"></div>
+      <div><label class="form-label">URL da loja *</label><input type="url" id="purl-${id}" value="${url}" placeholder="https://..."></div>
+    </div>`;
+  document.getElementById('platform-rows').appendChild(div);
+}
+
+function collectPlatforms() {
+  const result = {};
+  document.querySelectorAll('.platform-editor').forEach(row => {
+    const id = row.id.replace('prow-','');
+    const key = document.getElementById(`pkey-${id}`).value;
+    const price = parseFloat(document.getElementById(`pprice-${id}`).value) || 0;
+    const url = document.getElementById(`purl-${id}`).value;
+    const onSale = document.getElementById(`psale-${id}`).checked;
+    const originalPrice = parseFloat(document.getElementById(`poriginal-${id}`).value) || null;
+    if (key && url) result[key] = { price, url, onSale, ...(onSale && originalPrice ? { originalPrice } : {}) };
+  });
+  return result;
+}
+
+async function submitGame(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-id').value;
+  const data = {
+    title: document.getElementById('f-title').value.trim(),
+    icon: document.getElementById('f-icon').value.trim() || '🎮',
+    description: document.getElementById('f-desc').value.trim(),
+    genre: document.getElementById('f-genre').value,
+    releaseYear: parseInt(document.getElementById('f-year').value) || null,
+    metacritic: parseInt(document.getElementById('f-meta').value) || null,
+    isFree: document.getElementById('f-free').checked,
+    platforms: collectPlatforms(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+
+  try {
+    if (id) {
+      await db.collection('games').doc(id).update(data);
+      toast('Jogo atualizado!', 'success');
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('games').add(data);
+      toast('Jogo adicionado!', 'success');
+    }
+    resetForm();
+    await loadGames();
+    setSection('games', document.querySelector('.admin-menu-item'));
+  } catch(err) {
+    toast('Erro: ' + err.message, 'error');
+  }
+}
+
+function editGame(gameId) {
+  const g = allGames.find(x => x.id === gameId);
+  if (!g) return;
+  document.getElementById('form-title').textContent = 'Editar jogo';
+  document.getElementById('edit-id').value = g.id;
+  document.getElementById('f-title').value = g.title;
+  document.getElementById('f-icon').value = g.icon || '';
+  document.getElementById('f-desc').value = g.description || '';
+  document.getElementById('f-genre').value = g.genre;
+  document.getElementById('f-year').value = g.releaseYear || '';
+  document.getElementById('f-meta').value = g.metacritic || '';
+  document.getElementById('f-free').checked = !!g.isFree;
+  document.getElementById('platform-rows').innerHTML = '';
+  platformRowCount = 0;
+  Object.entries(g.platforms || {}).forEach(([k, p]) => addPlatformRow(k, p.price, p.url, p.onSale, p.originalPrice||''));
+  setSection('add', document.querySelectorAll('.admin-menu-item')[1]);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+  document.getElementById('game-form').reset();
+  document.getElementById('edit-id').value = '';
+  document.getElementById('form-title').textContent = 'Adicionar jogo';
+  document.getElementById('platform-rows').innerHTML = '';
+  platformRowCount = 0;
+  setSection('games', document.querySelector('.admin-menu-item'));
+}
+
+function askDelete(id) {
+  deleteTargetId = id;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId) return;
+  try {
+    await db.collection('games').doc(deleteTargetId).delete();
+    toast('Jogo excluído', 'info');
+    document.getElementById('confirm-modal').classList.remove('open');
+    deleteTargetId = null;
+    await loadGames();
+  } catch(err) {
+    toast('Erro ao excluir: ' + err.message, 'error');
+  }
+}
+
+function closeConfirm(e) {
+  if (e.target === document.getElementById('confirm-modal')) document.getElementById('confirm-modal').classList.remove('open');
+}
+
+let toastTimer;
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  const icons = { success:'ti-check', error:'ti-alert-circle', info:'ti-info-circle' };
+  el.className = `toast toast-${type} show`;
+  el.innerHTML = `<i class="ti ${icons[type]}" style="font-size:16px"></i> ${msg}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+// ════════════════════════════════════════════
+// SEEKER — Firestore Security Rules
+// Cole isso no Firebase Console → Firestore → Rules
+// ════════════════════════════════════════════
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Admins (lista no código) ──
+    // Como não temos custom claims aqui, a proteção de escrita
+    // é feita no frontend checando ADMIN_EMAILS.
+    // Para produção robusta, use Firebase Custom Claims:
+    // https://firebase.google.com/docs/auth/admin/custom-claims
+
+    // ── Games ──
+    // Leitura pública, escrita só autenticado
+    // (o admin check real é feito pelo frontend + custom claims)
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── Favorites ──
+    // Cada usuário só pode ler/escrever seus próprios favoritos
+    match /favorites/{userId}/items/{gameId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

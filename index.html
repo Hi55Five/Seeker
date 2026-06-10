@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seeker — Biblioteca de Jogos</title>
+  <meta name="description" content="Encontre jogos e compare preços em Steam, Epic, GOG, PlayStation, Xbox e muito mais.">
+
+  <!-- Performance: preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase (Compat CDN — funciona com múltiplas abas e cache offline) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     NAVBAR
+════════════════════════════════════ -->
+<nav class="navbar">
+  <a class="navbar-brand" href="index.html">SEEK<span>ER</span></a>
+  <div class="navbar-actions">
+    <a class="nav-link active" href="index.html"><i class="ti ti-layout-grid"></i> Biblioteca</a>
+    <a class="nav-link" href="favorites.html"><i class="ti ti-heart"></i> Favoritos <span id="fav-count" style="display:none; background:var(--accent-main); color:#fff; font-size:11px; padding:1px 6px; border-radius:10px; margin-left:2px;"></span></a>
+    <a class="nav-link" href="compare.html"><i class="ti ti-scale"></i> Comparar</a>
+    <div id="nav-auth"></div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════
+     HERO
+════════════════════════════════════ -->
+<div style="background: linear-gradient(180deg, #1A1040 0%, var(--bg-base) 100%); border-bottom: 1px solid var(--border-subtle); padding: 2.5rem 0;">
+  <div class="container" style="display:flex; align-items:center; justify-content:space-between; gap:2rem; flex-wrap:wrap;">
+    <div>
+      <h1 style="font-size:32px; margin-bottom:8px;">Encontre o menor preço<br><span style="color:var(--accent-main);">em todas as plataformas.</span></h1>
+      <p style="color:var(--text-secondary); font-size:15px;">Steam · Epic · GOG · PlayStation · Xbox · Nintendo Switch</p>
+    </div>
+    <div style="display:flex; gap:2rem; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div id="hero-total" style="font-size:28px; font-weight:700; font-family:var(--font-display);">—</div>
+        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Jogos</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="hero-deals" style="font-size:28px; font-weight:700; font-family:var(--font-display); color:#6ee882;">—</div>
+        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Em promoção</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; font-family:var(--font-display);">6</div>
+        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Plataformas</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════ -->
+<main>
+  <div class="container page-content">
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" id="search-input" placeholder="Buscar jogo..." autocomplete="off">
+      </div>
+      <div id="genre-pills" style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="genre-pill active" data-genre="">Todos</button>
+      </div>
+      <select class="sort-select" id="sort-select">
+        <option value="title">A → Z</option>
+        <option value="price-asc">Menor preço</option>
+        <option value="price-desc">Maior preço</option>
+        <option value="meta">Metacritic</option>
+        <option value="year">Mais recente</option>
+      </select>
+      <select class="sort-select" id="platform-filter" style="min-width:130px;">
+        <option value="">Plataforma</option>
+        <option value="steam">Steam</option>
+        <option value="epic">Epic Games</option>
+        <option value="gog">GOG</option>
+        <option value="psn">PlayStation</option>
+        <option value="xbox">Xbox</option>
+        <option value="switch_">Switch</option>
+      </select>
+    </div>
+
+    <p id="result-count" style="font-size:13px; color:var(--text-muted); margin-bottom:1rem;"></p>
+
+    <!-- Grid -->
+    <div class="games-grid" id="games-grid">
+      <div class="state-loading">
+        <div class="state-loading-spinner"></div>
+        <p>Carregando jogos...</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ════════════════════════════════════
+     GAME DETAIL MODAL
+════════════════════════════════════ -->
+<div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-game-title">—</span>
+      <button class="modal-close" onclick="closeDetailModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TOAST
+════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════ -->
+<script src="firebase.js"></script>
+<script>
+// ──────────────────────────────────────
+// Estado global
+// ──────────────────────────────────────
+let allGames = [];
+let favorites = new Set();
+let currentUser = null;
+let compareList = JSON.parse(localStorage.getItem('seeker_compare') || '[]');
+
+// ──────────────────────────────────────
+// Auth
+// ──────────────────────────────────────
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  renderNav();
+  if (user) loadFavorites();
+  else {
+    favorites.clear();
+    updateFavCount();
+    renderGrid();
+  }
+});
+
+function renderNav() {
+  const el = document.getElementById('nav-auth');
+  if (currentUser) {
+    const initials = (currentUser.displayName || currentUser.email || 'U').slice(0,2).toUpperCase();
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="admin.html" class="btn btn-ghost btn-sm"><i class="ti ti-settings"></i></a>
+        <div class="user-avatar" title="${currentUser.email}" onclick="signOut()">${initials}</div>
+      </div>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="signIn()"><i class="ti ti-login"></i> Entrar</button>`;
+  }
+}
+
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e => toast('Erro ao entrar: ' + e.message, 'error'));
+}
+function signOut() {
+  auth.signOut();
+  toast('Saiu da conta', 'info');
+}
+
+// ──────────────────────────────────────
+// Carrega jogos do Firestore
+// ──────────────────────────────────────
+async function loadGames() {
+  try {
+    const snap = await db.collection('games').orderBy('title').get();
+    if (snap.empty) {
+      await seedGames();
+      return loadGames();
+    }
+    allGames = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    buildGenrePills();
+    updateHeroStats();
+    renderGrid();
+  } catch (e) {
+    document.getElementById('games-grid').innerHTML =
+      `<div class="state-empty"><i class="ti ti-wifi-off" style="font-size:36px;margin-bottom:8px;"></i><p>Erro ao carregar. Verifique sua conexão.</p></div>`;
+  }
+}
+
+async function seedGames() {
+  const batch = db.batch();
+  SEED_GAMES.forEach(g => {
+    const ref = db.collection('games').doc();
+    batch.set(ref, { ...g, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  });
+  await batch.commit();
+}
+
+// ──────────────────────────────────────
+// Favoritos
+// ──────────────────────────────────────
+async function loadFavorites() {
+  if (!currentUser) return;
+  const snap = await db.collection('favorites').doc(currentUser.uid)
+    .collection('items').get();
+  favorites = new Set(snap.docs.map(d => d.id));
+  updateFavCount();
+  renderGrid();
+}
+
+async function toggleFavorite(e, gameId) {
+  e.stopPropagation();
+  if (!currentUser) { toast('Faça login para salvar favoritos', 'info'); signIn(); return; }
+  const ref = db.collection('favorites').doc(currentUser.uid).collection('items').doc(gameId);
+  if (favorites.has(gameId)) {
+    await ref.delete();
+    favorites.delete(gameId);
+    toast('Removido dos favoritos', 'info');
+  } else {
+    await ref.set({ addedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    favorites.add(gameId);
+    toast('Adicionado aos favoritos ♥', 'success');
+  }
+  updateFavCount();
+  renderGrid();
+}
+
+function updateFavCount() {
+  const el = document.getElementById('fav-count');
+  if (favorites.size > 0) { el.style.display = 'inline'; el.textContent = favorites.size; }
+  else el.style.display = 'none';
+}
+
+// ──────────────────────────────────────
+// Render
+// ──────────────────────────────────────
+function getMinPrice(game) {
+  const prices = Object.values(game.platforms || {}).map(p => p.price).filter(p => p > 0);
+  return prices.length ? Math.min(...prices) : 0;
+}
+
+function buildGenrePills() {
+  const genres = [...new Set(allGames.map(g => g.genre))].sort();
+  const container = document.getElementById('genre-pills');
+  container.innerHTML = `<button class="genre-pill active" data-genre="">Todos</button>`;
+  genres.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'genre-pill'; btn.dataset.genre = g; btn.textContent = g;
+    container.appendChild(btn);
+  });
+  container.addEventListener('click', e => {
+    if (!e.target.matches('.genre-pill')) return;
+    container.querySelectorAll('.genre-pill').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderGrid();
+  });
+}
+
+function updateHeroStats() {
+  document.getElementById('hero-total').textContent = allGames.length;
+  const deals = allGames.filter(g => Object.values(g.platforms||{}).some(p => p.onSale)).length;
+  document.getElementById('hero-deals').textContent = deals;
+}
+
+function renderGrid() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const genre = document.querySelector('.genre-pill.active')?.dataset.genre || '';
+  const sort = document.getElementById('sort-select').value;
+  const platform = document.getElementById('platform-filter').value;
+
+  let filtered = allGames.filter(g => {
+    const matchQ = !q || g.title.toLowerCase().includes(q) || (g.description||'').toLowerCase().includes(q);
+    const matchG = !genre || g.genre === genre;
+    const matchP = !platform || g.platforms?.[platform];
+    return matchQ && matchG && matchP;
+  });
+
+  filtered.sort((a,b) => {
+    if (sort === 'title') return a.title.localeCompare(b.title);
+    if (sort === 'price-asc') return getMinPrice(a) - getMinPrice(b);
+    if (sort === 'price-desc') return getMinPrice(b) - getMinPrice(a);
+    if (sort === 'meta') return (b.metacritic||0) - (a.metacritic||0);
+    if (sort === 'year') return (b.releaseYear||0) - (a.releaseYear||0);
+    return 0;
+  });
+
+  const count = document.getElementById('result-count');
+  count.textContent = `${filtered.length} jogo${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`;
+
+  const grid = document.getElementById('games-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="state-empty"><i class="ti ti-mood-sad" style="font-size:40px;margin-bottom:8px;"></i><p>Nenhum jogo encontrado.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(g => gameCardHTML(g)).join('');
+}
+
+function gameCardHTML(g) {
+  const isFav = favorites.has(g.id);
+  const minPrice = getMinPrice(g);
+  const hasSale = Object.values(g.platforms||{}).some(p => p.onSale);
+  const badge = g.isFree ? '<span class="game-badge badge-free">Grátis</span>'
+    : hasSale ? '<span class="game-badge badge-sale">Promoção</span>'
+    : g.releaseYear >= 2023 ? '<span class="game-badge badge-new">Novo</span>' : '';
+
+  const metaClass = g.metacritic >= 85 ? 'meta-green' : g.metacritic >= 70 ? 'meta-yellow' : 'meta-red';
+  const platformChips = Object.keys(g.platforms||{}).map(k => {
+    const info = PLATFORMS[k];
+    if (!info) return '';
+    return `<span class="plat-chip chip-${k.replace('_','')}">${info.label}</span>`;
+  }).join('');
+
+  const inCompare = compareList.includes(g.id);
+
+  return `
+  <div class="card game-card" onclick="openDetail('${g.id}')">
+    <div class="game-card-thumb">
+      <span style="font-size:48px">${g.icon || '🎮'}</span>
+      ${badge}
+      <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(event,'${g.id}')" title="${isFav ? 'Remover favorito' : 'Adicionar favorito'}">
+        <i class="ti ti-heart${isFav ? '-filled' : ''}"></i>
+      </button>
+    </div>
+    <div class="game-card-body">
+      <div class="game-card-title">${g.title}</div>
+      <div class="game-card-genre">${g.genre}${g.releaseYear ? ' · ' + g.releaseYear : ''}</div>
+      <div class="game-card-meta">
+        <div>
+          ${g.isFree ? '<span class="game-price-free">Free to Play</span>'
+            : `<span class="game-price">R$ ${minPrice.toFixed(2).replace('.',',')}</span>`}
+        </div>
+        ${g.metacritic ? `<span class="game-meta-score ${metaClass}">${g.metacritic}</span>` : ''}
+      </div>
+      <div class="platform-chips">${platformChips}</div>
+    </div>
+  </div>`;
+}
+
+// ──────────────────────────────────────
+// Detail Modal
+// ──────────────────────────────────────
+function openDetail(gameId) {
+  const g = allGames.find(x => x.id === gameId);
+  if (!g) return;
+  document.getElementById('modal-game-title').textContent = g.title;
+
+  const platforms = Object.entries(g.platforms || {});
+  const prices = platforms.filter(([,p]) => p.price > 0).map(([,p]) => p.price);
+  const minPrice = prices.length ? Math.min(...prices) : 0;
+
+  const rows = platforms.map(([key, p]) => {
+    const info = PLATFORMS[key] || { label: key, color: '#888' };
+    const isBest = p.price === minPrice && p.price > 0;
+    const isFree = p.price === 0;
+    return `
+    <tr>
+      <td><div class="plat-name">
+        <div class="plat-dot" style="background:${info.color}"></div>
+        ${info.label}
+      </div></td>
+      <td>
+        ${isFree ? '<span class="game-price-free">Grátis</span>'
+          : p.onSale && p.originalPrice
+            ? `<span style="color:var(--text-muted);text-decoration:line-through;font-size:12px;margin-right:4px;">R$ ${p.originalPrice.toFixed(2).replace('.',',')}</span>
+               <span class="${isBest ? 'price-best' : ''}">R$ ${p.price.toFixed(2).replace('.',',')}</span>`
+            : `<span class="${isBest ? 'price-best' : ''}">R$ ${p.price.toFixed(2).replace('.',',')}</span>`}
+        ${isBest && !isFree ? '<span class="price-tag" style="margin-left:6px;">Melhor preço</span>' : ''}
+        ${p.onSale && p.originalPrice ? `<span style="font-size:11px;color:#6ee882;margin-left:4px;">-${Math.round((1-p.price/p.originalPrice)*100)}%</span>` : ''}
+      </td>
+      <td>
+        <a href="${p.url}" target="_blank" class="compare-btn" onclick="event.stopPropagation()">
+          Comprar <i class="ti ti-external-link"></i>
+        </a>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const inCompare = compareList.includes(g.id);
+  document.getElementById('modal-body').innerHTML = `
+    <div class="game-detail-head">
+      <div class="game-detail-icon">${g.icon || '🎮'}</div>
+      <div class="game-detail-info">
+        <h2>${g.title}</h2>
+        <p>${g.description || ''}</p>
+        <div class="game-detail-tags">
+          <span class="detail-tag"><i class="ti ti-tag" style="font-size:12px"></i> ${g.genre}</span>
+          ${g.releaseYear ? `<span class="detail-tag"><i class="ti ti-calendar" style="font-size:12px"></i> ${g.releaseYear}</span>` : ''}
+          ${g.metacritic ? `<span class="detail-tag"><i class="ti ti-star" style="font-size:12px"></i> Metacritic ${g.metacritic}</span>` : ''}
+        </div>
+      </div>
+    </div>
+    <hr class="divider">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.75rem;">
+      <h3 style="font-size:15px;">Comparar preços</h3>
+      <button class="btn btn-ghost btn-sm" onclick="toggleCompare('${g.id}')">
+        <i class="ti ti-scale"></i> ${inCompare ? 'Remover da comparação' : 'Adicionar à comparação'}
+      </button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="price-table">
+        <thead><tr>
+          <th>Plataforma</th><th>Preço</th><th>Loja</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').classList.remove('open');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('detail-modal')) closeDetailModal();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetailModal(); });
+
+// ──────────────────────────────────────
+// Compare list
+// ──────────────────────────────────────
+function toggleCompare(gameId) {
+  if (compareList.includes(gameId)) {
+    compareList = compareList.filter(id => id !== gameId);
+    toast('Removido da comparação', 'info');
+  } else {
+    if (compareList.length >= 4) { toast('Máximo 4 jogos na comparação', 'error'); return; }
+    compareList.push(gameId);
+    toast('Adicionado à comparação', 'success');
+  }
+  localStorage.setItem('seeker_compare', JSON.stringify(compareList));
+  closeDetailModal();
+  renderGrid();
+}
+
+// ──────────────────────────────────────
+// Toast
+// ──────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  const icons = { success: 'ti-check', error: 'ti-alert-circle', info: 'ti-info-circle' };
+  el.className = `toast toast-${type} show`;
+  el.innerHTML = `<i class="ti ${icons[type]}" style="font-size:16px"></i> ${msg}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ──────────────────────────────────────
+// Event listeners
+// ──────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', renderGrid);
+document.getElementById('sort-select').addEventListener('change', renderGrid);
+document.getElementById('platform-filter').addEventListener('change', renderGrid);
+
+// Debounce scroll-based lazy render (opcional)
+let renderPending = false;
+function scheduleRender() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => { renderGrid(); renderPending = false; });
+}
+
+// ──────────────────────────────────────
+// Init
+// ──────────────────────────────────────
+loadGames();
+</script>
+</body>
+</html>
