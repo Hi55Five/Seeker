@@ -3,12 +3,12 @@
 // Substitua com suas credenciais do Firebase
 // =============================================
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBE7BNwzf2fmCUrl5qFduj2QeRKpCvY_ag",
+  authDomain: "seeker-ebb0d.firebaseapp.com",
+  projectId: "seeker-ebb0d",
+  storageBucket: "seeker-ebb0d.firebasestorage.app",
+  messagingSenderId: "777240696572",
+  appId: "1:777240696572:web:4dbea0c881e05e8ca56979"
 };
 
 // Inicializa Firebase
