@@ -144,7 +144,6 @@ function startProductsListener(){
     loadDemo();
   }
 }
-startProductsListener();
 
 /* =========================================================
    TEMA CLARO/ESCURO
@@ -358,3 +357,8 @@ pfDelete?.addEventListener("click", async () => {
     console.error(err);
   }
 });
+
+/* ---------- inicia o carregamento dos produtos ----------
+   (fica no final do arquivo de propósito: só chama depois
+   que todos os elementos do modo desenvolvedor já existem) */
+startProductsListener();
