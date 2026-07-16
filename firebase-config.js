@@ -16,6 +16,14 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.2/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyCLNYXs_MIO-lmHsZR6sfFndb7oGSJw_QA",
   authDomain: "seeker-8ab57.firebaseapp.com",
@@ -25,6 +33,10 @@ const firebaseConfig = {
   appId: "1:278946065621:web:7088746e5345c8556c065c",
   measurementId: "G-96XCKEJWRK"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // true = ainda não editado (o site cai automaticamente no catálogo de exemplo)
 export const FIREBASE_IS_CONFIGURED = firebaseConfig.apiKey !== "AIzaSyCLNYXs_MIO-lmHsZR6sfFndb7oGSJw_QA";
