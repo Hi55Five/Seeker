@@ -107,10 +107,10 @@
 
       <div class="filter-row" id="filterRow">
         <button class="chip active" data-filter="todos">Todos</button>
-        <button class="chip" data-filter="vestidos">Vestidos</button>
-        <button class="chip" data-filter="blusas">Blusas &amp; Tops</button>
-        <button class="chip" data-filter="calcas">Calças &amp; Saias</button>
-        <button class="chip" data-filter="calcados">Calçados</button>
+        <button class="chip" data-filter="camisas">Camisas &amp; Camisetas</button>
+        <button class="chip" data-filter="bermudas">Bermudas</button>
+        <button class="chip" data-filter="calcas">Calças</button>
+        <button class="chip" data-filter="vestidos">Vestidos &amp; Saias</button>
         <button class="chip" data-filter="acessorios">Acessórios</button>
       </div>
     </div>
@@ -241,13 +241,17 @@
         <input type="text" id="pfTitle" required placeholder="ex: Vestido midi canelado">
       </label>
 
+      <label>Link da imagem da capa (opcional)
+        <input type="url" id="pfImage" placeholder="https://... (link direto da imagem)">
+      </label>
+
       <div class="dev-form-grid">
         <label>Categoria
           <select id="pfCategory" required>
-            <option value="vestidos">Vestidos</option>
-            <option value="blusas">Blusas &amp; Tops</option>
-            <option value="calcas">Calças &amp; Saias</option>
-            <option value="calcados">Calçados</option>
+            <option value="camisas">Camisas &amp; Camisetas</option>
+            <option value="bermudas">Bermudas</option>
+            <option value="calcas">Calças</option>
+            <option value="vestidos">Vestidos &amp; Saias</option>
             <option value="acessorios">Acessórios</option>
           </select>
         </label>

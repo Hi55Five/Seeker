@@ -25,10 +25,10 @@ if (FIREBASE_IS_CONFIGURED) {
 
 /* ---------- ícones por categoria ---------- */
 const ICONS = {
-  vestidos: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3l1.5 2h3L15 3l3 3-2 2 1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2l1-11-2-2 3-3z"/></svg>`,
-  blusas: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4 4 7l2 3 2-1.3V20h8V8.7L18 10l2-3-4-3-2 1.5h-4L8 4z"/></svg>`,
+  camisas: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4 4 7l2 3 2-1.3V20h8V8.7L18 10l2-3-4-3-2 1.5h-4L8 4z"/></svg>`,
+  bermudas: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l.7 5-1.2 4.5L18 21h-2.2l-1.3-7-1.3 7H11l-1.5-8.5L8.2 21H6l.5-8.5L5.3 8 6 3z"/></svg>`,
   calcas: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l.8 6-2.3 12h-2l-1.2-9-1.2 9h-2L6.2 9 7 3z"/></svg>`,
-  calcados: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c0-2 1-3 3-4l4-2 2-3 3 1-1 3 6 2.5c1 .4 1.5 1 1.5 2.5H3z"/></svg>`,
+  vestidos: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3l1.5 2h3L15 3l3 3-2 2 1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2l1-11-2-2 3-3z"/></svg>`,
   acessorios: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><path d="M12 10.2V21M8 21h8"/></svg>`
 };
 const PLATFORM_LABEL = { shopee: "Shopee", shein: "Shein", ali: "AliExpress" };
@@ -42,13 +42,13 @@ const ACCENTS = ["lilac", "mint", "peach", "blue", "rose"];
 /* ---------- catálogo de exemplo (offline / sem Firebase ainda) ---------- */
 const DEMO_PRODUCTS = [
   { code: "SK-0001", title: "Vestido midi alcinha canelado", category: "vestidos", platform: "shein", price: "R$ 69,90", oldPrice: "R$ 98,00", query: "vestido midi alcinha canelado" },
-  { code: "SK-0002", title: "Blusa cropped manga bufante", category: "blusas", platform: "shopee", price: "R$ 34,90", query: "blusa cropped manga bufante" },
+  { code: "SK-0002", title: "Camiseta oversized básica", category: "camisas", platform: "shopee", price: "R$ 34,90", query: "camiseta oversized básica" },
   { code: "SK-0003", title: "Calça alfaiataria pantalona", category: "calcas", platform: "ali", price: "R$ 87,50", oldPrice: "R$ 120,00", query: "calça alfaiataria pantalona feminina" },
-  { code: "SK-0004", title: "Tênis chunky branco plataforma", category: "calcados", platform: "shopee", price: "R$ 129,90", query: "tenis chunky branco plataforma feminino" },
+  { code: "SK-0004", title: "Bermuda jeans cintura alta", category: "bermudas", platform: "shopee", price: "R$ 59,90", query: "bermuda jeans cintura alta feminina" },
   { code: "SK-0005", title: "Colar camadas banhado a ouro", category: "acessorios", platform: "ali", price: "R$ 24,90", query: "colar camadas banhado a ouro feminino" },
   { code: "SK-0006", title: "Vestido de linho manga longa", category: "vestidos", platform: "shopee", price: "R$ 79,90", query: "vestido linho manga longa" },
-  { code: "SK-0007", title: "Regata canelada gola careca", category: "blusas", platform: "shein", price: "R$ 22,90", query: "regata canelada gola careca" },
-  { code: "SK-0008", title: "Saia jeans midi botões", category: "calcas", platform: "shein", price: "R$ 54,90", oldPrice: "R$ 79,90", query: "saia jeans midi botões" }
+  { code: "SK-0007", title: "Camisa social manga longa", category: "camisas", platform: "shein", price: "R$ 49,90", query: "camisa social manga longa feminina" },
+  { code: "SK-0008", title: "Saia jeans midi botões", category: "vestidos", platform: "shein", price: "R$ 54,90", oldPrice: "R$ 79,90", query: "saia jeans midi botões" }
 ];
 
 let allProducts = [];
@@ -72,11 +72,14 @@ function renderGrid(list){
   grid.innerHTML = list.map((p, i) => {
     const accent = ACCENTS[i % ACCENTS.length];
     const link = p.link ? p.link : PLATFORM_URL[p.platform](p.query || p.title);
+    const mediaStyle = p.image
+      ? `background-image:url('${escapeHtml(p.image)}');background-size:cover;background-position:center;`
+      : `background:color-mix(in srgb, var(--${accent}) 32%, var(--surface));`;
     return `
       <a class="card" href="${link}" target="_blank" rel="noopener" data-category="${p.category}">
-        <div class="card-media" style="background:color-mix(in srgb, var(--${accent}) 32%, var(--surface));">
+        <div class="card-media" style="${mediaStyle}">
           <span class="badge badge-${p.platform}">${PLATFORM_LABEL[p.platform]}</span>
-          <div style="width:38%;color:var(--${accent}-ink)">${ICONS[p.category] || ""}</div>
+          ${p.image ? "" : `<div style="width:38%;color:var(--${accent}-ink)">${ICONS[p.category] || ""}</div>`}
         </div>
         <div class="card-body">
           <p class="card-title">${escapeHtml(p.title)}</p>
@@ -179,6 +182,7 @@ const pfDelete       = document.getElementById("pfDelete");
 const pfCancel       = document.getElementById("pfCancel");
 const pfCodeRow      = document.getElementById("pfCodeRow");
 const pfCode         = document.getElementById("pfCode");
+const pfImage        = document.getElementById("pfImage");
 
 function openDrawer(){ devDrawer.classList.add("open"); devOverlay.classList.add("open"); devDrawer.setAttribute("aria-hidden","false"); }
 function closeDrawer(){ devDrawer.classList.remove("open"); devOverlay.classList.remove("open"); devDrawer.setAttribute("aria-hidden","true"); resetProductForm(); }
@@ -271,6 +275,7 @@ function openProductForm(id){
     document.getElementById("pfOldPrice").value = p.oldPrice || "";
     document.getElementById("pfLink").value = p.link || "";
     document.getElementById("pfQuery").value = p.query || "";
+    pfImage.value = p.image || "";
     pfCode.textContent = p.code || "—";
     pfCodeRow.style.display = "flex";
     pfDelete.classList.remove("hidden");
@@ -316,7 +321,8 @@ devProductForm?.addEventListener("submit", async (e) => {
     price: document.getElementById("pfPrice").value.trim(),
     oldPrice: document.getElementById("pfOldPrice").value.trim(),
     link: document.getElementById("pfLink").value.trim(),
-    query: document.getElementById("pfQuery").value.trim()
+    query: document.getElementById("pfQuery").value.trim(),
+    image: pfImage.value.trim()
   };
 
   if (!data.link && !data.query){
