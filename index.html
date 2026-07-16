@@ -23,15 +23,23 @@
       <a href="#sobre">Sobre</a>
     </nav>
 
-    <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema claro e escuro" title="Alternar tema">
-      <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-        <circle cx="12" cy="12" r="4.2"/>
-        <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
-      </svg>
-      <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/>
-      </svg>
-    </button>
+    <div class="header-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema claro e escuro" title="Alternar tema">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
+        </svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/>
+        </svg>
+      </button>
+
+      <button class="dev-toggle" id="devToggle" aria-label="Abrir modo desenvolvedor" title="Modo desenvolvedor">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m4 17 6-6-6-6M12 19h8"/>
+        </svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -178,6 +186,111 @@
   </div>
 </footer>
 
-<script src="script.js"></script>
+<!-- ===== MODO DESENVOLVEDOR ===== -->
+<div class="dev-overlay" id="devOverlay"></div>
+
+<aside class="dev-drawer" id="devDrawer" aria-hidden="true">
+
+  <div class="dev-drawer-head">
+    <div>
+      <p class="eyebrow" style="margin:0 0 4px;">Modo desenvolvedor</p>
+      <h3 id="devHeadTitle">Entrar</h3>
+    </div>
+    <button class="dev-close" id="devClose" aria-label="Fechar painel">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="dev-status" id="devStatus"></div>
+
+  <!-- LOGIN -->
+  <div class="dev-panel" id="devLoginPanel">
+    <p class="dev-hint">Faça login com a conta de administrador do Firebase pra editar o catálogo.</p>
+    <form id="devLoginForm" class="dev-form">
+      <label>E-mail
+        <input type="email" id="devEmail" required autocomplete="username">
+      </label>
+      <label>Senha
+        <input type="password" id="devPassword" required autocomplete="current-password">
+      </label>
+      <button type="submit" class="btn-primary">Entrar</button>
+      <p class="dev-error" id="devLoginError"></p>
+    </form>
+  </div>
+
+  <!-- PAINEL LOGADO -->
+  <div class="dev-panel hidden" id="devAdminPanel">
+    <div class="dev-admin-head">
+      <span id="devUserEmail" class="dev-user"></span>
+      <button class="link-btn" id="devLogout">Sair</button>
+    </div>
+
+    <button class="btn-primary btn-block" id="devNewBtn">+ Novo produto</button>
+
+    <!-- FORM DE PRODUTO (novo ou edição) -->
+    <form id="devProductForm" class="dev-form hidden">
+      <input type="hidden" id="pfDocId">
+      <div class="dev-form-row" id="pfCodeRow" style="display:none;">
+        <span class="dev-hint">ID interno:</span>
+        <code id="pfCode">—</code>
+      </div>
+
+      <label>Título
+        <input type="text" id="pfTitle" required placeholder="ex: Vestido midi canelado">
+      </label>
+
+      <div class="dev-form-grid">
+        <label>Categoria
+          <select id="pfCategory" required>
+            <option value="vestidos">Vestidos</option>
+            <option value="blusas">Blusas &amp; Tops</option>
+            <option value="calcas">Calças &amp; Saias</option>
+            <option value="calcados">Calçados</option>
+            <option value="acessorios">Acessórios</option>
+          </select>
+        </label>
+        <label>Loja
+          <select id="pfPlatform" required>
+            <option value="shopee">Shopee</option>
+            <option value="shein">Shein</option>
+            <option value="ali">AliExpress</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="dev-form-grid">
+        <label>Preço
+          <input type="text" id="pfPrice" required placeholder="R$ 69,90">
+        </label>
+        <label>Preço antigo (opcional)
+          <input type="text" id="pfOldPrice" placeholder="R$ 98,00">
+        </label>
+      </div>
+
+      <label>Link direto do produto (opcional)
+        <input type="url" id="pfLink" placeholder="https://...">
+      </label>
+      <label>Termo de busca (usado se não houver link direto)
+        <input type="text" id="pfQuery" placeholder="ex: vestido midi canelado">
+      </label>
+
+      <div class="dev-form-actions">
+        <button type="submit" class="btn-primary" id="pfSubmit">Salvar produto</button>
+        <button type="button" class="btn-ghost" id="pfCancel">Cancelar</button>
+        <button type="button" class="btn-danger hidden" id="pfDelete">Excluir</button>
+      </div>
+      <p class="dev-error" id="devFormError"></p>
+    </form>
+
+    <!-- BUSCA + LISTA -->
+    <div class="dev-list-head">
+      <input type="text" id="devSearch" placeholder="Buscar por ID ou título…">
+    </div>
+    <div class="dev-list" id="devList"></div>
+  </div>
+
+</aside>
+
+<script type="module" src="script.js"></script>
 </body>
 </html>
