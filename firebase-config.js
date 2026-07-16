@@ -27,7 +27,7 @@ const firebaseConfig = {
 };
 
 // true = ainda não editado (o site cai automaticamente no catálogo de exemplo)
-export const FIREBASE_IS_CONFIGURED = firebaseConfig.apiKey !== "AIzaSyCLNYXs_MIO-lmHsZR6sfFndb7oGSJw_QA";
+export const FIREBASE_IS_CONFIGURED = firebaseConfig.apiKey !== "SUA_API_KEY";
 
 export const app = FIREBASE_IS_CONFIGURED ? initializeApp(firebaseConfig) : null;
 export const db = FIREBASE_IS_CONFIGURED ? getFirestore(app) : null;
