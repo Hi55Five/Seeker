@@ -15,17 +15,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/fireba
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  messagingSenderId: "SEU_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyCLNYXs_MIO-lmHsZR6sfFndb7oGSJw_QA",
+  authDomain: "seeker-8ab57.firebaseapp.com",
+  projectId: "seeker-8ab57",
+  storageBucket: "seeker-8ab57.firebasestorage.app",
+  messagingSenderId: "278946065621",
+  appId: "1:278946065621:web:7088746e5345c8556c065c",
+  measurementId: "G-96XCKEJWRK"
 };
 
 // true = ainda não editado (o site cai automaticamente no catálogo de exemplo)
-export const FIREBASE_IS_CONFIGURED = firebaseConfig.apiKey !== "SUA_API_KEY";
+export const FIREBASE_IS_CONFIGURED = firebaseConfig.apiKey !== "AIzaSyCLNYXs_MIO-lmHsZR6sfFndb7oGSJw_QA";
 
 export const app = FIREBASE_IS_CONFIGURED ? initializeApp(firebaseConfig) : null;
 export const db = FIREBASE_IS_CONFIGURED ? getFirestore(app) : null;
